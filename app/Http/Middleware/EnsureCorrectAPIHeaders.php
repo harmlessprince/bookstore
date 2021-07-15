@@ -1,0 +1,36 @@
+<?php
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Response;
+use Symfony\Component\HttpFoundation\Response as HttpFoundationResponse;
+
+class EnsureCorrectAPIHeaders
+{
+    /**
+     * Handle an incoming request.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Closure  $next
+     * @return mixed
+     */
+    public function handle($request, Closure $next)
+    {
+        if ($request->headers->get('accept') !== 'application/vnd.api+json') {
+            return $this->addCorrectContentType(new Response('', 406));
+        }
+        if ( $request->headers->has('content-type') || $request->isMethod('POST') || $request->isMethod('PATCH')) {
+            if ($request->header('content-type') !== 'application/vnd.api+json') {
+                return $this->addCorrectContentType(new Response('', 415));
+            }
+        }
+        return $this->addCorrectContentType($next($request));
+    }
+
+    private function addCorrectContentType(HttpFoundationResponse $response)
+    {
+        $response->headers->set('content-type', 'application/vnd.api+json');
+        return $response;
+    }
+}
